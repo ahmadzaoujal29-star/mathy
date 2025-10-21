@@ -439,7 +439,7 @@ st.sidebar.markdown("""
 **2. الهيكلة (Schema):** تأكد من أن جدولك **`users`** في Supabase يحتوي على الأعمدة التالية: `email` (PK), **`password_hash` (Text)**, `lang`, `response_type`, `school_level`, `requests_today` (int), `last_request_date` (date), `is_unlimited` (boolean).
 **3. الأمان (RLS):** **ضروري جداً** تفعيل **Row Level Security** على جدول `users`.
 **4. المفاتيح:** جميع مفاتيحك (Gemini, Cookie, Supabase URL/Anon/Service) يجب أن تكون في `secrets.toml`.
-""")
+
 
 
 
