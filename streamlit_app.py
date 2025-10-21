@@ -661,7 +661,7 @@ if st.session_state.auth_status == 'logged_out':
     if remembered_email:
         if load_user_session(remembered_email):
             st.toast(f"مرحباً بعودتك، {remembered_email.split('@')[0]}! تم تسجيل الدخول تلقائياً.")
-            st.experimental_rerun()
+            st.rerun()
             
 # 2. عرض الواجهة المناسبة
 if st.session_state.auth_status == 'logged_out':
@@ -679,6 +679,7 @@ st.sidebar.markdown("""
 **3. الأمان (RLS):** **ضروري جداً** تفعيل **Row Level Security** على جدول `users`.
 **4. المفاتيح:** جميع مفاتيحك (Gemini, Cookie, Supabase URL/Anon/Service) يجب أن تكون في `secrets.toml`.
 """)
+
 
 
 
