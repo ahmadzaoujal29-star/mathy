@@ -485,8 +485,206 @@ def admin_dashboard_ui():
         st.sidebar.write("لا يوجد مستخدمون مسجلون غير المشرف.")
         return
 
-    st.sidebar.markdown("**قائمة
+    st.sidebar.markdown("**قائمة المستخدمين والتحكم بالامتيازات:**")
+    
+    for user_data in all_users:
+        email = user_data['email']
+        is_unlimited = user_data.get('is_unlimited', False)
+        
+        col_email, col_status, col_button = st.sidebar.columns([3, 2, 2])
+        
+        col_email.caption(f"**{email}**")
+        
+        status_text = "غير محدود (VIP)" if is_unlimited else f"محدود ({user_data.get('requests_today', 0)}/{MAX_REQUESTS})"
+        status_color = "#28a745" if is_unlimited else "#ffc107"
+        
+        col_status.markdown(f"<span style='font-size: 12px; color: {status_color}; font-weight: bold;'>{status_text}</span>", unsafe_allow_html=True)
+        
+        button_label = "إلغاء غير محدود" if is_unlimited else "جعل غير محدود"
+        button_key = f"toggle_{email}"
+        
+        col_button.button(
+            button_label,
+            key=button_key,
+            on_click=toggle_unlimited_use,
+            args=(email, is_unlimited)
+        )
+        st.sidebar.markdown("---")
 
+
+def settings_ui():
+    # (لم يتغير)
+    user_email = st.session_state.user_email
+    
+    st.sidebar.header(f"مرحباً بك، {user_email.split('@')[0]}!")
+    st.sidebar.button("Déconnexion", on_click=handle_logout, use_container_width=True)
+    
+    is_unlimited = st.session_state.is_unlimited
+    
+    if is_unlimited:
+        status_message = "✅ **الاستخدام غير محدود (VIP)**"
+        color = "#28a745"
+    else:
+        requests_left = MAX_REQUESTS - st.session_state.requests_today
+        status_message = f"الطلبات المتبقية اليوم: **{requests_left}** / {MAX_REQUESTS}"
+        color = "#007bff" if requests_left > 0 else "#dc3545"
+
+    st.sidebar.markdown(f"""
+    <div style='background-color:#e9ecef; padding:10px; border-radius:5px; text-align:center; border-left: 5px solid {color};'>
+        <span style='font-weight: bold; color: {color};'>{status_message}</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if user_email == ADMIN_EMAIL:
+        admin_dashboard_ui()
+
+
+    with st.sidebar.expander("⚙️ Modifier vos Préférences", expanded=True):
+        
+        with st.form("preferences_form"):
+            st.subheader("1. Préférences d'Assistance")
+            
+            school_levels = ['Tronc Commun', '1ère Année Bac (Sciences)', '2ème Année Bac (Sciences Maths A)', '2ème Année Bac (Sciences Maths B)', '2ème Année Bac (Sciences Expérimentales)', 'Écoles Supérieures/Classes Préparatoires']
+            
+            try:
+                current_level_index = school_levels.index(st.session_state.school_level)
+            except ValueError:
+                current_level_index = 0
+                
+            st.selectbox(
+                "Niveau Scolaire",
+                options=school_levels,
+                key="settings_school_level",
+                index=current_level_index
+            )
+            
+            st.radio(
+                "Langue Préférée",
+                options=['fr', 'ar'],
+                format_func=lambda x: 'Français' if x == 'fr' else 'العربية',
+                key="settings_lang",
+                index=0 if st.session_state.user_lang == 'fr' else 1
+            )
+            
+            response_options = {'answer': 'Réponse Finale Seulement', 'steps': 'Étapes Détaillées', 'explanation': 'Explication Conceptuelle'}
+            response_keys = list(response_options.keys())
+            
+            try:
+                current_response_index = response_keys.index(st.session_state.response_type)
+            except ValueError:
+                current_response_index = 1
+
+            st.selectbox(
+                "Genre de Réponse",
+                options=response_keys,
+                format_func=lambda x: response_options[x],
+                key="settings_response_type",
+                index=current_response_index
+            )
+
+            st.form_submit_button("Sauvegarder les Préférences", type="primary", on_click=handle_save_settings, use_container_width=True)
+        
+        st.markdown("---")
+        
+        with st.form("password_change_form"):
+            st.subheader("2. Changer le Mot de Passe")
+            st.text_input("Nouveau Mot de Passe", type="password", key="new_password")
+            st.text_input("Confirmer le Nouveau Mot de Passe", type="password", key="confirm_new_password")
+            st.form_submit_button("Changer le Mot المرور", type="secondary", on_click=handle_change_password, use_container_width=True)
+            
+
+def main_app_ui():
+    # (لم يتغير)
+    
+    st.title("💡 Tuteur Mathématique Spécialisé (Système Marocان)")
+    st.markdown("---")
+
+    st.markdown("""
+    **Bienvenue!** أنا **مدرس الذكاء الاصطناعي المتخصص**، جاهز لمساعدتك في حل المسائل الرياضية الخاصة بك. يمكنك طرح سؤال أو **تحميل صورة** لمسألة.
+    """)
+
+    uploaded_file = st.file_uploader(
+        "Optionnel : Téléchargez une photo d'un exercice de mathématiques (JPG أو PNG).",
+        type=["png", "jpg", "jpeg"],
+        key="image_uploader"
+    )
+
+    image_part_to_send = get_image_part(uploaded_file)
+    if uploaded_file is not None:
+        try:
+            image = Image.open(BytesIO(uploaded_file.getvalue()))
+            st.image(image, caption='Image téléchargée.', use_column_width=True)
+        except Exception as e:
+            st.error(f"Erreur lors du chargement de l'image : {e}")
+
+    user_prompt = st.text_area(
+        "Ajoutez votre question ou votre instruction هنا (حتى لو قمت بتحميل صورة).",
+        height=100,
+        key="prompt_input"
+    )
+
+    if st.button("Générer la Réponse Mathématique", use_container_width=True, type="primary"):
+        if not user_prompt and not uploaded_file:
+            st.warning("Veuillez entrer une question أو télécharger une image pour commencer la génération.")
+        else:
+            if uploaded_file and uploaded_file.size > 4 * 1024 * 1024:
+                st.error("L'image est trop volumineuse. Veuillez télécharger un fichier de moins de 4 Mo.")
+            else:
+                
+                with st.spinner('الذكاء الاصطناعي يحلل ويجهز الإجابة...'):
+                    generated_text, sources = call_gemini_api(user_prompt, image_part_to_send)
+                
+                st.subheader("✅ Réponse Générée :")
+                
+                if generated_text and generated_text not in ["Veuillez fournir une clé API valide.", "Limite de requêtes atteinte.", "Veuillez fournir une question أو صورة ليتمكن المدرس من مساعدتك.", "Désolé، le modèle n'a pas pu fournir de réponse. Veuillez essayer مع طلب آخر.", "فشلت عملية إنشاء الإجابة.", "La génération de la réponse a échoué."]:
+                    
+                    st.write_stream(stream_text_simulation(generated_text))
+                    
+                    if sources:
+                        st.subheader("🌐 Sources Citées :")
+                        unique_sources = set()
+                        for s in sources:
+                            if s['uri'] and s['title']:
+                                unique_sources.add((s['title'], s['uri']))
+                        
+                        source_markdown = ""
+                        for title, uri in unique_sources:
+                            source_markdown += f"- [{title}]({uri})\n"
+                        
+                        st.markdown(source_markdown)
+                    else:
+                        st.caption("Aucune source de recherche externe n'a été utilisée pour هذه الإجابة.")
+
+                else:
+                    st.markdown(generated_text)
+
+
+# --- التحكم الرئيسي بتدفق التطبيق (Main Flow Control) ---
+
+# 1. التحقق من الكوكي عند التشغيل
+if st.session_state.auth_status == 'logged_out':
+    remembered_email = cookies.get(COOKIE_KEY_EMAIL)
+    if remembered_email:
+        if load_user_session(remembered_email):
+            st.toast(f"مرحباً بعودتك، {remembered_email.split('@')[0]}! تم تسجيل الدخول تلقائياً.")
+            st.experimental_rerun()
+            
+# 2. عرض الواجهة المناسبة
+if st.session_state.auth_status == 'logged_out':
+    auth_ui()
+else:
+    settings_ui()
+    main_app_ui()
+
+# --- إرشادات النشر في الشريط الجانبي (Deployment Instructions) ---
+# (تم تحديثها لتعكس أهمية bcrypt)
+st.sidebar.subheader("Instructions de Déploiement 🚀")
+st.sidebar.markdown("""
+**1. المتطلبات:** يجب إضافة **`bcrypt`** و **`supabase`** و **`streamlit-cookies-manager`** في ملف **`requirements.txt`**.
+**2. الهيكلة (Schema):** تأكد من أن جدولك **`users`** في Supabase يحتوي على الأعمدة التالية: `email` (PK), **`password_hash` (Text)**, `lang`, `response_type`, `school_level`, `requests_today` (int), `last_request_date` (date), `is_unlimited` (boolean).
+**3. الأمان (RLS):** **ضروري جداً** تفعيل **Row Level Security** على جدول `users`.
+**4. المفاتيح:** جميع مفاتيحك (Gemini, Cookie, Supabase URL/Anon/Service) يجب أن تكون في `secrets.toml`.
+""")
 
 
 
