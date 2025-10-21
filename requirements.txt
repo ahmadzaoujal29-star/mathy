@@ -3,3 +3,5 @@ requests
 Pillow
 supabase
 streamlit-cookies-manager
+bcrypt  
+google-genai 
