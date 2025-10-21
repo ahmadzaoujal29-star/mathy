@@ -7,7 +7,7 @@ import json
 import os
 import time
 import base64
-import bcrypt # ✨ التحديث الرئيسي: مكتبة التشفير الآمنة
+import bcrypt # مكتبة التشفير الآمنة
 from PIL import Image
 from io import BytesIO
 from datetime import date, timedelta
@@ -53,7 +53,7 @@ try:
     
     # إنشاء اتصال Supabase
     supabase: Client = create_client(supabase_url, supabase_key)
-    users_table = supabase.table(SUPABASE_TABLE_NAME) # ✨ استخدام .table لتبسيط الكود
+    users_table = supabase.table(SUPABASE_TABLE_NAME) # استخدام .table لتبسيط الكود
 except KeyError:
     st.error("خطأ في المفاتيح السرية: يرجى التأكد من إضافة مفاتيح Supabase.")
     st.stop()
@@ -74,14 +74,14 @@ if 'is_unlimited' not in st.session_state: st.session_state.is_unlimited = False
 
 # --- دوال Supabase الفعلية (Database Functions) ---
 
-# ✨ التحديث 1: استخدام bcrypt للتشفير الآمن
+# استخدام bcrypt للتشفير الآمن
 def hash_password(password: str) -> str:
     """تشفير كلمة المرور باستخدام bcrypt."""
     # يجب أن تكون النتيجة سلسلة نصية لتخزينها في Supabase
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     return hashed.decode('utf-8')
 
-# ✨ التحديث 2: دالة للتحقق من كلمة المرور
+# دالة للتحقق من كلمة المرور
 def check_password(password: str, hashed_password: str) -> bool:
     """التحقق من كلمة المرور المدخلة مقابل الهاش المخزن."""
     try:
@@ -108,7 +108,7 @@ def get_user_by_email(email: str):
         st.error(f"خطأ في استرجاع بيانات المستخدم: {e}. (تحقق من اتصالك وشروط RLS).")
         return None
 
-# ✨ التحديث 3: دالة تحديث بيانات المستخدم (محسّنة)
+# دالة تحديث بيانات المستخدم (محسّنة)
 def update_user_data(email, data: dict, use_service_key=False):
     """تحديث بيانات المستخدم في Supabase."""
     client_to_use = supabase
@@ -136,7 +136,6 @@ def update_user_data(email, data: dict, use_service_key=False):
 # --- وظائف المساعدين (Helper Functions) ---
 
 def get_image_part(uploaded_file):
-    # (لم يتغير: تم إبقاؤه كما هو)
     if uploaded_file is not None:
         bytes_data = uploaded_file.getvalue()
         mime_type = uploaded_file.type
@@ -151,7 +150,6 @@ def get_image_part(uploaded_file):
     return None
 
 def stream_text_simulation(text):
-    # (لم يتغير: تم إبقاؤه كما هو)
     for chunk in text.split():
         yield chunk + " "
         time.sleep(0.02)
@@ -171,7 +169,7 @@ def call_gemini_api(prompt, image_part=None):
     # 1. تطبيق حد الطلبات (Rate Limiting)
     if not user_data.get('is_unlimited', False):
         
-        # ✨ التحديث 4: تحديث حالة الجلسة بناءً على آخر تاريخ طلب من Supabase
+        # تحديث حالة الجلسة بناءً على آخر تاريخ طلب من Supabase
         if user_data.get('last_request_date') != current_date_str:
             # إعادة تعيين العداد لليوم الجديد
             st.session_state.requests_today = 0
@@ -195,7 +193,7 @@ def call_gemini_api(prompt, image_part=None):
     response_type = user_data.get('response_type', 'steps')
     school_level = user_data.get('school_level', 'Tronc Commun')
     
-    # (بقية بناء الـ system_prompt لم يتغير)
+    # بناء الـ system_prompt
     system_prompt_base = f"Tu es un tuteur spécialisé en mathématiques, expert du système éducatif marocain (y compris le niveau '{school_level}'). Ta mission est de fournir une assistance précise et didactique. Si une image est fournie, tu dois l'analyser et résoudre le problème."
 
     if response_type == 'answer':
@@ -222,9 +220,9 @@ def call_gemini_api(prompt, image_part=None):
 
     payload = {
         "contents": [{"parts": contents_parts}],
-        # ✨ التحديث 5: إضافة Tool Calling للـ Google Search
+        # إضافة Tool Calling للـ Google Search
         "tools": [{"google_search": {} }],
-        "systemInstruction": final_system_prompt, # ✨ التحديث 6: استخدام نظام System Instruction الصحيح
+        "systemInstruction": final_system_prompt, # استخدام نظام System Instruction الصحيح
     }
 
     headers = { 'Content-Type': 'application/json' }
@@ -276,7 +274,6 @@ def call_gemini_api(prompt, image_part=None):
 # --- دوال المصادقة (Authentication Functions) ---
 
 def load_user_session(email, save_cookie=False):
-    # (وظيفة جيدة، تم إبقاؤها مع بعض التعديلات البسيطة لـ RLS)
     user_data = get_user_by_email(email)
     
     if user_data:
@@ -306,7 +303,7 @@ def load_user_session(email, save_cookie=False):
         return True
     return False
 
-# ✨ التحديث 7: استخدام check_password في تسجيل الدخول
+# استخدام check_password في تسجيل الدخول
 def handle_login():
     """معالجة تسجيل الدخول والتحقق من كلمة المرور في Supabase."""
     email = st.session_state.login_email.lower()
@@ -321,7 +318,7 @@ def handle_login():
     else:
         st.error("البريد الإلكتروني أو كلمة المرور غير صحيحة.")
 
-# ✨ التحديث 8: استخدام hash_password الآمن في التسجيل
+# استخدام hash_password الآمن في التسجيل
 def handle_register():
     """معالجة التسجيل وحفظ البيانات في Supabase."""
     email = st.session_state.reg_email.lower()
@@ -362,7 +359,6 @@ def handle_register():
 
 
 def handle_logout():
-    # (لم يتغير: تم إبقاؤه كما هو)
     cookies[COOKIE_KEY_EMAIL] = ''
     cookies.save()
     st.session_state.auth_status = 'logged_out'
@@ -373,7 +369,7 @@ def handle_logout():
     st.experimental_rerun()
 
 def handle_save_settings():
-    # (تم إبقاؤها كما هي - تستخدم update_user_data المحسّنة)
+    # تستخدم update_user_data المحسّنة
     email = st.session_state.user_email
 
     new_data = {
@@ -391,7 +387,7 @@ def handle_save_settings():
     else:
         st.error("خطأ: لم يتم حفظ التفضيلات.")
 
-# ✨ التحديث 9: استخدام hash_password الآمن في تغيير كلمة المرور
+# استخدام hash_password الآمن في تغيير كلمة المرور
 def handle_change_password():
     email = st.session_state.user_email
     new_password = st.session_state.new_password
@@ -416,7 +412,7 @@ def handle_change_password():
 
 
 def toggle_unlimited_use(target_email, current_status):
-    # (تم إبقاؤها كما هي - تستخدم update_user_data المحسّنة)
+    # تستخدم update_user_data المحسّنة
     new_status = not current_status
     if update_user_data(target_email, {'is_unlimited': new_status}, use_service_key=True):
         st.success(f"تم تحديث المستخدم **{target_email}**: الاستخدام غير المحدود الآن: {new_status}")
@@ -427,7 +423,6 @@ def toggle_unlimited_use(target_email, current_status):
 # --- واجهات المستخدم (UI Components) ---
 
 def auth_ui():
-    # (لم تتغير)
     st.header("Connexion / التسجيل")
     st.markdown("---")
 
@@ -461,7 +456,7 @@ def auth_ui():
 
 
 def admin_dashboard_ui():
-    # (تم تحسينه للتعامل مع المفتاح لضمان الوصول لجميع المستخدمين)
+    # تم تحسينه للتعامل مع المفتاح لضمان الوصول لجميع المستخدمين
     
     st.sidebar.markdown("---")
     st.sidebar.subheader("👑 لوحة تحكم المشرف")
@@ -485,6 +480,7 @@ def admin_dashboard_ui():
         st.sidebar.write("لا يوجد مستخدمون مسجلون غير المشرف.")
         return
 
+    # تم تصحيح خطأ السلسلة النصية هنا
     st.sidebar.markdown("**قائمة المستخدمين والتحكم بالامتيازات:**")
     
     for user_data in all_users:
@@ -513,7 +509,6 @@ def admin_dashboard_ui():
 
 
 def settings_ui():
-    # (لم يتغير)
     user_email = st.session_state.user_email
     
     st.sidebar.header(f"مرحباً بك، {user_email.split('@')[0]}!")
@@ -594,7 +589,6 @@ def settings_ui():
             
 
 def main_app_ui():
-    # (لم يتغير)
     
     st.title("💡 Tuteur Mathématique Spécialisé (Système Marocان)")
     st.markdown("---")
@@ -685,8 +679,6 @@ st.sidebar.markdown("""
 **3. الأمان (RLS):** **ضروري جداً** تفعيل **Row Level Security** على جدول `users`.
 **4. المفاتيح:** جميع مفاتيحك (Gemini, Cookie, Supabase URL/Anon/Service) يجب أن تكون في `secrets.toml`.
 """)
-
-
 
 
 
